@@ -223,11 +223,11 @@ func WithFields(msg string, fields Fields, level Level) {
 	case DebugLevel:
 		levelStr = "Debug"
 	case InfoLevel:
-		levelStr = fmt.Sprintf("%s", util.If(isColor, Magenta, "")) + "Info " + Reset
+		levelStr = "Info "
 	case WarnLevel:
-		levelStr = fmt.Sprintf("%s", util.If(isColor, Yellow, "")) + "Warn " + Reset
+		levelStr = "Warn "
 	case ErrorLevel:
-		levelStr = fmt.Sprintf("%s", util.If(isColor, Red, "")) + "Error" + Reset
+		levelStr = "Error"
 	case FatalLevel:
 		levelStr = "Fatal"
 	case PanicLevel:
