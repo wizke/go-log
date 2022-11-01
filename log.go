@@ -194,6 +194,14 @@ func Info(args ...interface{}) {
 	logCommon(fmt.Sprintf("%s", util.If(isColor, Magenta, ""))+"Info "+Reset, fmt.Sprintf("%s:%d", file, line), args...)
 }
 
+func Println(args ...interface{}) {
+	if logLevel < InfoLevel {
+		return
+	}
+	_, file, line, _ := runtime.Caller(1)
+	logCommon("Info ", fmt.Sprintf("%s:%d", file, line), args...)
+}
+
 func Warn(args ...interface{}) {
 	if logLevel < WarnLevel {
 		return
@@ -230,15 +238,15 @@ func WithFields(msg string, fields Fields, level Level) {
 	case DebugLevel:
 		levelStr = "Debug"
 	case InfoLevel:
-		levelStr = "Info "
+		levelStr = fmt.Sprintf("%s", util.If(isColor, Magenta, "")) + "Info " + Reset
 	case WarnLevel:
-		levelStr = "Warn "
+		levelStr = fmt.Sprintf("%s", util.If(isColor, Yellow, "")) + "Warn " + Reset
 	case ErrorLevel:
-		levelStr = "Error"
+		levelStr = fmt.Sprintf("%s", util.If(isColor, Red, "")) + "Error" + Reset
 	case FatalLevel:
 		levelStr = "Fatal"
 	case PanicLevel:
 		levelStr = "Panic"
 	}
-	logCommon(levelStr, file, line, msg, fieldsJson)
+	logCommon(levelStr, fmt.Sprintf("%s:%d", file, line), msg, fieldsJson)
 }
