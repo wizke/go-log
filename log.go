@@ -204,17 +204,17 @@ func Error(args ...interface{}) {
 }
 
 func WithFields(msg string, fields Fields, level Level) {
-	if fields == nil {
-		fields = Fields{}
-	}
 	_, file, line, _ := runtime.Caller(1)
 	file = strings.Replace(file, logMainPrefix, "", 1)
-	fieldsJsonByte, err := json.Marshal(fields)
+
 	var fieldsJson string
-	if err != nil {
-		fieldsJson = fmt.Sprintf("%v", fields)
-	} else {
-		fieldsJson = string(fieldsJsonByte)
+	if fields != nil {
+		fieldsJsonByte, err := json.Marshal(fields)
+		if err != nil {
+			fieldsJson = fmt.Sprintf("%v", fields)
+		} else {
+			fieldsJson = string(fieldsJsonByte)
+		}
 	}
 	levelStr := ""
 	switch level {
