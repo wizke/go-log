@@ -44,7 +44,7 @@ const (
 )
 
 var ( //初始化修改后不再进行修改的全局参数
-	_thisFile     = "log/log.go"
+	_thisFile     = "log.go"
 	defaultLogger = ""   //缺省logger 名称
 	instanceID    string //所在机器标识
 	logMainPrefix = ""   // 用于显示日志输出文件路径，清除源码内路径前部内容
@@ -56,26 +56,11 @@ var ( //初始化修改后不再进行修改的全局参数
 
 func init() {
 	instanceID, _ = os.Hostname()
-	InitLogger("Trace", _thisFile, "", true, 10)
+	InitLogger(TraceLevel, _thisFile, "", true, 10)
 }
 
-func InitLogger(setLogLevelStr string, thisFile string, logFile string, setColor bool, daysCount int) {
-	switch setLogLevelStr {
-	case "Panic":
-		logLevel = PanicLevel
-	case "Fatal":
-		logLevel = FatalLevel
-	case "Error":
-		logLevel = ErrorLevel
-	case "Warn":
-		logLevel = WarnLevel
-	case "Info":
-		logLevel = InfoLevel
-	case "Debug":
-		logLevel = DebugLevel
-	case "Trace":
-		logLevel = TraceLevel
-	}
+func InitLogger(setLogLevel Level, thisFile string, logFile string, setColor bool, daysCount int) {
+	logLevel = setLogLevel
 	logDaysCount = daysCount
 
 	_, file, _, _ := runtime.Caller(1)
