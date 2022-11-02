@@ -14,7 +14,7 @@ import (
 
 type (
 	Fields map[string]interface{}
-	Level  int
+	Level  string
 )
 
 // Colors
@@ -34,13 +34,13 @@ const (
 )
 
 const (
-	PanicLevel Level = iota
-	FatalLevel
-	ErrorLevel
-	WarnLevel
-	InfoLevel
-	DebugLevel
-	TraceLevel
+	PanicLevel Level = "Panic"
+	FatalLevel Level = "Fatal"
+	ErrorLevel Level = "Error"
+	WarnLevel  Level = "Warn"
+	InfoLevel  Level = "Info"
+	DebugLevel Level = "Debug"
+	TraceLevel Level = "Trace"
 )
 
 var ( //初始化修改后不再进行修改的全局参数
