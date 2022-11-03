@@ -13,8 +13,9 @@ import (
 )
 
 type (
-	Fields map[string]interface{}
-	Level  string
+	Fields   map[string]interface{}
+	Level    int
+	LevelStr string
 )
 
 // Colors
@@ -34,14 +35,41 @@ const (
 )
 
 const (
-	PanicLevel Level = "Panic"
-	FatalLevel Level = "Fatal"
-	ErrorLevel Level = "Error"
-	WarnLevel  Level = "Warn"
-	InfoLevel  Level = "Info"
-	DebugLevel Level = "Debug"
-	TraceLevel Level = "Trace"
+	PanicLevel Level = iota
+	FatalLevel
+	ErrorLevel
+	WarnLevel
+	InfoLevel
+	DebugLevel
+	TraceLevel
 )
+
+func (l Level) String() string {
+	return [...]string{"Panic", "Fatal", "Error", "Warn", "Info", "Debug", "Trace"}[l]
+}
+
+func (l Level) EnumIndex() int {
+	return int(l)
+}
+
+func (ls LevelStr) GetLevel() Level {
+	switch ls {
+	case "Panic":
+		return PanicLevel
+	case "Fatal":
+		return FatalLevel
+	case "Error":
+		return ErrorLevel
+	case "Warn":
+		return WarnLevel
+	case "Info":
+		return InfoLevel
+	case "Debug":
+		return DebugLevel
+	default:
+		return TraceLevel
+	}
+}
 
 var ( //初始化修改后不再进行修改的全局参数
 	_thisFile     = "log.go"
