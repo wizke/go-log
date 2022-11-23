@@ -231,6 +231,32 @@ func Error(args ...interface{}) {
 	logCommon(fmt.Sprintf("%s", util.If(isColor, Red, ""))+"Error"+Reset, fmt.Sprintf("%s:%d", file, line), args...)
 }
 
+func Fatal(args ...interface{}) {
+	if logLevel < FatalLevel {
+		return
+	}
+	log.Fatal(args)
+}
+
+func Panic(args ...interface{}) {
+	if logLevel < PanicLevel {
+		return
+	}
+	log.Panic(args)
+}
+
+func InfoByteListHex(byteList []byte) {
+	str := "["
+	for i, b := range byteList {
+		str += fmt.Sprintf(" 0x%02X", b)
+		if i == len(byteList)-1 {
+			str += " "
+		}
+	}
+	str += "]"
+	Info(str)
+}
+
 func WithFields(msg string, fields Fields, level Level) {
 	_, file, line, _ := runtime.Caller(1)
 	file = strings.Replace(file, logMainPrefix, "", 1)
