@@ -215,6 +215,14 @@ func Println(args ...interface{}) {
 	logCommon("Info ", fmt.Sprintf("%s:%d", file, line), args...)
 }
 
+func Printf(str string, args ...interface{}) {
+	if logLevel < InfoLevel {
+		return
+	}
+	_, file, line, _ := runtime.Caller(1)
+	logCommon("Info ", fmt.Sprintf("%s:%d", file, line), fmt.Sprintf(str, args...))
+}
+
 func Warn(args ...interface{}) {
 	if logLevel < WarnLevel {
 		return
