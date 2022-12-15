@@ -16,6 +16,13 @@ type (
 	Fields   map[string]interface{}
 	Level    int
 	LevelStr string
+	Config   struct {
+		LogLevel Level
+		ThisFile string
+		LogFile  string
+		SetColor bool
+		DayCount int
+	}
 )
 
 // Colors
@@ -72,8 +79,8 @@ func (ls LevelStr) GetLevel() Level {
 }
 
 var ( //初始化修改后不再进行修改的全局参数
+	//defaultLogger = ""   //缺省logger 名称
 	_thisFile     = "log.go"
-	defaultLogger = ""   //缺省logger 名称
 	instanceID    string //所在机器标识
 	logMainPrefix = ""   // 用于显示日志输出文件路径，清除源码内路径前部内容
 	logPkgPrefix  = ""   // 用于显示日志输出文件路径，清除pkg包中调用日志的文件路径前部内容
@@ -84,18 +91,18 @@ var ( //初始化修改后不再进行修改的全局参数
 
 func init() {
 	instanceID, _ = os.Hostname()
-	InitLogger(TraceLevel, _thisFile, "", true, 10)
+	InitLogger(Config{TraceLevel, _thisFile, "", true, 10})
 }
 
-func InitLogger(setLogLevel Level, thisFile string, logFile string, setColor bool, daysCount int) {
-	logLevel = setLogLevel
-	logDaysCount = daysCount
+func InitLogger(config Config) {
+	logLevel = config.LogLevel
+	logDaysCount = config.DayCount
 
 	_, file, _, _ := runtime.Caller(1)
-	if thisFile == _thisFile {
-		logPkgPrefix = strings.Replace(file, thisFile, "", 1)
+	if config.ThisFile == _thisFile {
+		logPkgPrefix = strings.Replace(file, config.ThisFile, "", 1)
 	} else {
-		logMainPrefix = strings.Replace(file, thisFile, "", 1)
+		logMainPrefix = strings.Replace(file, config.ThisFile, "", 1)
 	}
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
 	switch runtime.GOOS {
@@ -105,14 +112,14 @@ func InitLogger(setLogLevel Level, thisFile string, logFile string, setColor boo
 		isColor = true
 		return
 	case "linux":
-		isColor = setColor
+		isColor = config.SetColor
 	}
-	if logFile != "" {
-		_, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		path := logFile + ".%Y%m%d"
+	if config.LogFile != "" {
+		_, err := os.OpenFile(config.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		path := config.LogFile + ".%Y%m%d"
 		writer, _ := rotate.New(
 			path,
-			rotate.WithLinkName(logFile),
+			rotate.WithLinkName(config.LogFile),
 			rotate.WithMaxAge(time.Duration(24*logDaysCount)*time.Hour),
 			rotate.WithRotationTime(time.Duration(24)*time.Hour),
 		)
@@ -165,9 +172,9 @@ func logCommon(levelStr, file string, args ...interface{}) {
 		showStr += fmt.Sprintf("%v ", arg)
 	}
 	if isColor && !isPkgLog { // 在彩色输出模式下将pkg包中调用的日志也以非彩色形式输出
-		log.Println(fmt.Sprintf("%s%-20s%s [%s]", Cyan, langFileStrToShortStr(file, 20), Reset, levelStr), showStr)
+		log.Println(fmt.Sprintf("[%s]%s%-20s%s [%s]", instanceID, Cyan, langFileStrToShortStr(file, 20), Reset, levelStr), showStr)
 	} else {
-		log.Println(fmt.Sprintf("%-20s [%s]", langFileStrToShortStr(file, 20), levelStr), showStr)
+		log.Println(fmt.Sprintf("[%s]%-20s [%s]", instanceID, langFileStrToShortStr(file, 20), levelStr), showStr)
 	}
 }
 
