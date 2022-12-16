@@ -172,9 +172,9 @@ func logCommon(levelStr, file string, args ...interface{}) {
 		showStr += fmt.Sprintf("%v ", arg)
 	}
 	if isColor && !isPkgLog { // 在彩色输出模式下将pkg包中调用的日志也以非彩色形式输出
-		log.Println(fmt.Sprintf("[%s]%s%-20s%s [%s]", instanceID, Cyan, langFileStrToShortStr(file, 20), Reset, levelStr), showStr)
+		log.Println(fmt.Sprintf("[%s] %s%-20s%s [%s]", instanceID, Cyan, langFileStrToShortStr(file, 20), Reset, levelStr), showStr)
 	} else {
-		log.Println(fmt.Sprintf("[%s]%-20s [%s]", instanceID, langFileStrToShortStr(file, 20), levelStr), showStr)
+		log.Println(fmt.Sprintf("[%s] %-20s [%s]", instanceID, langFileStrToShortStr(file, 20), levelStr), showStr)
 	}
 }
 
