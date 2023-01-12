@@ -42,7 +42,7 @@ const (
 )
 
 const (
-	PanicLevel Level = iota
+	PanicLevel Level = iota + 1
 	FatalLevel
 	ErrorLevel
 	WarnLevel
@@ -91,10 +91,20 @@ var ( //初始化修改后不再进行修改的全局参数
 
 func init() {
 	instanceID, _ = os.Hostname()
-	InitLogger(Config{TraceLevel, _thisFile, "", true, 10})
+	InitLogger(Config{TraceLevel, _thisFile, "", isColor, logDaysCount})
 }
 
 func InitLogger(config Config) {
+	if config.LogLevel == 0 {
+		config.LogLevel = TraceLevel
+	}
+	if config.ThisFile == "" {
+		config.ThisFile = _thisFile
+	}
+	if config.DayCount == 0 {
+		config.DayCount = logDaysCount
+	}
+
 	logLevel = config.LogLevel
 	logDaysCount = config.DayCount
 
