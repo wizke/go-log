@@ -89,6 +89,10 @@ var ( //初始化修改后不再进行修改的全局参数
 	logDaysCount  = 10
 )
 
+func SetLogLevel(l Level) {
+	logLevel = l
+}
+
 func init() {
 	instanceID, _ = os.Hostname()
 	InitLogger(Config{TraceLevel, _thisFile, "", isColor, logDaysCount})
