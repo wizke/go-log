@@ -59,19 +59,20 @@ func (l Level) EnumIndex() int {
 	return int(l)
 }
 
-func (ls LevelStr) GetLevel() Level {
-	switch ls {
-	case "Panic":
+func (s LevelStr) GetLevel() Level {
+	p := strings.ToLower(string(s))
+	switch p {
+	case "panic":
 		return PanicLevel
-	case "Fatal":
+	case "fatal":
 		return FatalLevel
-	case "Error":
+	case "error":
 		return ErrorLevel
-	case "Warn":
+	case "warn":
 		return WarnLevel
-	case "Info":
+	case "info":
 		return InfoLevel
-	case "Debug":
+	case "debug":
 		return DebugLevel
 	default:
 		return TraceLevel
