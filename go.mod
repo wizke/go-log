@@ -1,6 +1,6 @@
 module github.com/wizke/go-log
 
-go 1.17
+go 1.16
 
 require github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 

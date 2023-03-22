@@ -18,7 +18,6 @@ type (
 	LevelStr string
 	Config   struct {
 		LogLevel Level
-		ThisFile string
 		LogFile  string
 		SetColor bool
 		DayCount int
@@ -81,10 +80,8 @@ func (s LevelStr) GetLevel() Level {
 
 var ( //初始化修改后不再进行修改的全局参数
 	//defaultLogger = ""   //缺省logger 名称
-	_thisFile     = "log.go"
 	instanceID    string //所在机器标识
 	logMainPrefix = ""   // 用于显示日志输出文件路径，清除源码内路径前部内容
-	logPkgPrefix  = ""   // 用于显示日志输出文件路径，清除pkg包中调用日志的文件路径前部内容
 	logLevel      = TraceLevel
 	isColor       = false
 	logDaysCount  = 10
@@ -96,15 +93,12 @@ func SetLogLevel(l Level) {
 
 func init() {
 	instanceID, _ = os.Hostname()
-	InitLogger(Config{TraceLevel, _thisFile, "", isColor, logDaysCount})
+	InitLogger(Config{TraceLevel, "", isColor, logDaysCount})
 }
 
 func InitLogger(config Config) {
 	if config.LogLevel == 0 {
 		config.LogLevel = TraceLevel
-	}
-	if config.ThisFile == "" {
-		config.ThisFile = _thisFile
 	}
 	if config.DayCount == 0 {
 		config.DayCount = logDaysCount
@@ -113,12 +107,6 @@ func InitLogger(config Config) {
 	logLevel = config.LogLevel
 	logDaysCount = config.DayCount
 
-	_, file, _, _ := runtime.Caller(1)
-	if config.ThisFile == _thisFile {
-		logPkgPrefix = strings.Replace(file, config.ThisFile, "", 1)
-	} else {
-		logMainPrefix = strings.Replace(file, config.ThisFile, "", 1)
-	}
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
 	switch runtime.GOOS {
 	case "windows", "darwin":
@@ -175,18 +163,11 @@ func langFileStrToShortStr(fileStr string, maxLength int) (outStr string) {
 }
 
 func logCommon(levelStr, file string, args ...interface{}) {
-	isPkgLog := false
-	if strings.Index(file, logPkgPrefix) == -1 {
-		file = strings.Replace(file, logMainPrefix, "", 1)
-	} else {
-		isPkgLog = true
-		file = strings.Replace(file, logPkgPrefix, "daisy/", 1)
-	}
 	showStr := ""
 	for _, arg := range args {
 		showStr += fmt.Sprintf("%v ", arg)
 	}
-	if isColor && !isPkgLog { // 在彩色输出模式下将pkg包中调用的日志也以非彩色形式输出
+	if isColor { // 在彩色输出模式下将pkg包中调用的日志也以非彩色形式输出
 		log.Println(fmt.Sprintf("[%s] %s%-20s%s [%s]", instanceID, Cyan, langFileStrToShortStr(file, 20), Reset, levelStr), showStr)
 	} else {
 		log.Println(fmt.Sprintf("[%s] %-20s [%s]", instanceID, langFileStrToShortStr(file, 20), levelStr), showStr)
@@ -265,14 +246,14 @@ func Fatal(args ...interface{}) {
 	if logLevel < FatalLevel {
 		return
 	}
-	log.Fatal(args)
+	log.Fatal(args...)
 }
 
 func Panic(args ...interface{}) {
 	if logLevel < PanicLevel {
 		return
 	}
-	log.Panic(args)
+	log.Panic(args...)
 }
 
 func InfoByteListHex(byteList []byte) {
@@ -288,6 +269,9 @@ func InfoByteListHex(byteList []byte) {
 }
 
 func WithFields(msg string, fields Fields, level Level) {
+	if logLevel < level {
+		return
+	}
 	_, file, line, _ := runtime.Caller(1)
 	file = strings.Replace(file, logMainPrefix, "", 1)
 
@@ -307,11 +291,11 @@ func WithFields(msg string, fields Fields, level Level) {
 	case DebugLevel:
 		levelStr = "Debug"
 	case InfoLevel:
-		levelStr = "Info "
+		levelStr = fmt.Sprintf("%s", util.If(isColor, Magenta, "")) + "Info " + Reset
 	case WarnLevel:
-		levelStr = "Warn "
+		levelStr = fmt.Sprintf("%s", util.If(isColor, Yellow, "")) + "Warn " + Reset
 	case ErrorLevel:
-		levelStr = "Error"
+		levelStr = fmt.Sprintf("%s", util.If(isColor, Red, "")) + "Error" + Reset
 	case FatalLevel:
 		levelStr = "Fatal"
 	case PanicLevel:
