@@ -58,8 +58,8 @@ func (l Level) EnumIndex() int {
 	return int(l)
 }
 
-func (s LevelStr) GetLevel() Level {
-	p := strings.ToLower(string(s))
+func NewLevel(str string) Level {
+	p := strings.ToLower(str)
 	switch p {
 	case "panic":
 		return PanicLevel
@@ -76,6 +76,10 @@ func (s LevelStr) GetLevel() Level {
 	default:
 		return TraceLevel
 	}
+}
+
+func (s LevelStr) GetLevel() Level {
+	return NewLevel(string(s))
 }
 
 var ( //初始化修改后不再进行修改的全局参数
