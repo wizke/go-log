@@ -1,6 +1,8 @@
 package log
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestLog(t *testing.T) {
 	InitLogger(Config{

@@ -22,7 +22,10 @@ type (
 		SetColor bool
 		DayCount int
 	}
+	SessionKeyType string
 )
+
+const SessionId SessionKeyType = "session_id"
 
 // Colors
 const (
@@ -214,7 +217,7 @@ func Info(args ...interface{}) {
 	logCommon(fmt.Sprintf("%s", util.If(isColor, Magenta, ""))+"Info "+Reset, fmt.Sprintf("%s:%d", file, line), args...)
 }
 
-func Println(args ...interface{}) {
+func InfoPrintln(args ...interface{}) {
 	if logLevel < InfoLevel {
 		return
 	}
@@ -222,12 +225,20 @@ func Println(args ...interface{}) {
 	logCommon("Info ", fmt.Sprintf("%s:%d", file, line), args...)
 }
 
-func Printf(str string, args ...interface{}) {
+func InfoPrintf(str string, args ...interface{}) {
 	if logLevel < InfoLevel {
 		return
 	}
 	_, file, line, _ := runtime.Caller(1)
 	logCommon("Info ", fmt.Sprintf("%s:%d", file, line), fmt.Sprintf(str, args...))
+}
+
+func Printf(str string, args ...interface{}) {
+	log.Printf(str, args...)
+}
+
+func Println(args ...interface{}) {
+	log.Println(args...)
 }
 
 func Warn(args ...interface{}) {
