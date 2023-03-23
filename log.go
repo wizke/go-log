@@ -1,6 +1,7 @@
 package log
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	rotate "github.com/lestrrat-go/file-rotatelogs"
@@ -17,15 +18,13 @@ type (
 	Level    int
 	LevelStr string
 	Config   struct {
-		LogLevel Level
-		LogFile  string
-		SetColor bool
-		DayCount int
+		LogLevel   Level
+		LogFile    string
+		SetColor   bool
+		DayCount   int
+		SessionKey string
 	}
-	SessionKeyType string
 )
-
-const SessionId SessionKeyType = "session_id"
 
 // Colors
 const (
@@ -92,6 +91,7 @@ var ( //初始化修改后不再进行修改的全局参数
 	logLevel      = TraceLevel
 	isColor       = false
 	logDaysCount  = 10
+	sessionKey    = ""
 )
 
 func SetLogLevel(l Level) {
@@ -100,7 +100,7 @@ func SetLogLevel(l Level) {
 
 func init() {
 	instanceID, _ = os.Hostname()
-	InitLogger(Config{TraceLevel, "", isColor, logDaysCount})
+	InitLogger(Config{TraceLevel, "", isColor, logDaysCount, ""})
 }
 
 func InitLogger(config Config) {
@@ -109,6 +109,9 @@ func InitLogger(config Config) {
 	}
 	if config.DayCount == 0 {
 		config.DayCount = logDaysCount
+	}
+	if config.SessionKey != "" {
+		sessionKey = config.SessionKey
 	}
 
 	logLevel = config.LogLevel
@@ -217,6 +220,18 @@ func Info(args ...interface{}) {
 	logCommon(fmt.Sprintf("%s", util.If(isColor, Magenta, ""))+"Info "+Reset, fmt.Sprintf("%s:%d", file, line), args...)
 }
 
+func InfoWithCtx(ctx context.Context, args ...interface{}) {
+	if logLevel < InfoLevel {
+		return
+	}
+	_, file, line, _ := runtime.Caller(1)
+	sid := ctx.Value(sessionKey)
+	if sid != nil {
+		args = append(args, "sid:"+sid.(string))
+	}
+	logCommon(fmt.Sprintf("%s", util.If(isColor, Magenta, ""))+"Info "+Reset, fmt.Sprintf("%s:%d", file, line), args...)
+}
+
 func InfoPrintln(args ...interface{}) {
 	if logLevel < InfoLevel {
 		return
@@ -254,6 +269,18 @@ func Error(args ...interface{}) {
 		return
 	}
 	_, file, line, _ := runtime.Caller(1)
+	logCommon(fmt.Sprintf("%s", util.If(isColor, Red, ""))+"Error"+Reset, fmt.Sprintf("%s:%d", file, line), args...)
+}
+
+func ErrorWithCtx(ctx context.Context, args ...interface{}) {
+	if logLevel < ErrorLevel {
+		return
+	}
+	_, file, line, _ := runtime.Caller(1)
+	sid := ctx.Value(sessionKey)
+	if sid != nil {
+		args = append(args, "sid:"+sid.(string))
+	}
 	logCommon(fmt.Sprintf("%s", util.If(isColor, Red, ""))+"Error"+Reset, fmt.Sprintf("%s:%d", file, line), args...)
 }
 
