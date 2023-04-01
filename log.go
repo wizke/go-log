@@ -138,7 +138,7 @@ func InitLogger(config Config) {
 		)
 
 		if err != nil {
-			log.Printf("open log file error : %s", err.Error())
+			fmt.Println("open log file error:", err.Error(),"now log in stdout")
 			return
 		}
 		log.SetOutput(writer)
