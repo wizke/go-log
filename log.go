@@ -123,12 +123,11 @@ func InitLogger(config Config) {
 		// 默认在windows和macos下启用开发模式，输出所有日志等级
 		// 不进行日志文件写入，将日志输出到stdout，并开启彩色输出
 		isColor = true
-		return
+		//return
 	case "linux":
 		isColor = config.SetColor
 	}
 	if config.LogFile != "" {
-		_, err := os.OpenFile(config.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		path := config.LogFile + ".%Y%m%d"
 		writer, _ := rotate.New(
 			path,
@@ -137,10 +136,6 @@ func InitLogger(config Config) {
 			rotate.WithRotationTime(time.Duration(24)*time.Hour),
 		)
 
-		if err != nil {
-			log.Printf("open log file error : %s", err.Error())
-			return
-		}
 		log.SetOutput(writer)
 	}
 }
