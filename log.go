@@ -263,7 +263,6 @@ func logCommon(level Level, file string, ctx context.Context, args ...interface{
 	showStr := ""
 	switch logMode {
 	case JsonMode:
-		// TODO support json format
 		levelStr := strings.ToLower(level.String())
 		showStr = fmt.Sprintf(`{"level":"%s","file":"%s",%s%s"%s":%s}`, levelStr, file,
 			util.If(instanceIdShow, `"instance":"`+instanceID+`",`, ""),

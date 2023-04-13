@@ -18,7 +18,7 @@ func commonLog() {
 	WithFields(nil, Fields{"1": "a"}, InfoLevel)
 	WithFields(nil, Fields{"1": "a"}, WarnLevel)
 	WithFields(nil, Fields{"1": "a"}, ErrorLevel)
-	ctx := context.TODO()
+	ctx := context.Background()
 	ctx1 := context.WithValue(ctx, "session_id", "s1")
 	InfoWithCtx(ctx1, "info")
 	WarnWithCtx(ctx1, "warn")
