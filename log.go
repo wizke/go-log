@@ -123,7 +123,7 @@ func InitLogger(config Config) {
 		// 默认在windows和macos下启用开发模式，输出所有日志等级
 		// 不进行日志文件写入，将日志输出到stdout，并开启彩色输出
 		isColor = true
-		//return
+		return
 	case "linux":
 		isColor = config.SetColor
 	}
@@ -135,7 +135,6 @@ func InitLogger(config Config) {
 			rotate.WithMaxAge(time.Duration(24*logDaysCount)*time.Hour),
 			rotate.WithRotationTime(time.Duration(24)*time.Hour),
 		)
-
 		log.SetOutput(writer)
 	}
 }
