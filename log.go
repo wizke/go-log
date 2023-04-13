@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	rotate "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/wizke/go-util"
@@ -17,13 +18,37 @@ type (
 	Fields   map[string]interface{}
 	Level    int
 	LevelStr string
+	Mode     string
 	Config   struct {
-		LogLevel   Level
-		LogFile    string
-		SetColor   bool
-		DayCount   int
-		SessionKey string
+		LogLevel       Level
+		LogFile        string
+		SetColor       bool
+		DayCount       int
+		SessionKey     string
+		Mode           Mode
+		InstanceId     string
+		InstanceIdShow bool
+		Stdout         bool
 	}
+	CtxKey string
+	Logger interface {
+		Info(Fields)
+		Warn(Fields)
+		Error(Fields)
+	}
+	LoggerImpl struct {
+		Mode Mode
+	}
+)
+
+const (
+	CommonMode Mode = ""
+	JsonMode   Mode = "json"
+)
+
+const (
+	CtxKeyLogWith = "log_with"
+	CtxFields     = "fields"
 )
 
 // Colors
@@ -43,7 +68,9 @@ const (
 )
 
 const (
-	PanicLevel Level = iota + 1
+	SqlLevel   Level = iota // Sql仅用于接管Sql日志输出
+	StartLevel              // Start仅用于标记服务启动时的位置点与结束点
+	PanicLevel
 	FatalLevel
 	ErrorLevel
 	WarnLevel
@@ -52,8 +79,16 @@ const (
 	TraceLevel
 )
 
+// String
 func (l Level) String() string {
-	return [...]string{"Panic", "Fatal", "Error", "Warn", "Info", "Debug", "Trace"}[l]
+	return [...]string{"SQL  ", "Start", "Panic", "Fatal", "Error", "Warn ", "Info ", "Debug", "Trace"}[l]
+}
+
+func (l Level) StringLowerOnly() string {
+	s := l.String()
+	s = strings.ToLower(s)
+	s = strings.Replace(s, " ", "", -1)
+	return s
 }
 
 func (l Level) EnumIndex() int {
@@ -62,6 +97,7 @@ func (l Level) EnumIndex() int {
 
 func NewLevel(str string) Level {
 	p := strings.ToLower(str)
+	p = strings.Replace(p, " ", "", -1)
 	switch p {
 	case "panic":
 		return PanicLevel
@@ -80,18 +116,30 @@ func NewLevel(str string) Level {
 	}
 }
 
+func NewMode(str string) Mode {
+	p := strings.ToLower(str)
+	p = strings.Replace(p, " ", "", -1)
+	switch str {
+	case "json":
+		return JsonMode
+	default:
+		return CommonMode
+	}
+}
+
 func (s LevelStr) GetLevel() Level {
 	return NewLevel(string(s))
 }
 
 var ( //初始化修改后不再进行修改的全局参数
-	//defaultLogger = ""   //缺省logger 名称
-	instanceID    string //所在机器标识
-	logMainPrefix = ""   // 用于显示日志输出文件路径，清除源码内路径前部内容
-	logLevel      = TraceLevel
-	isColor       = false
-	logDaysCount  = 10
-	sessionKey    = ""
+	instanceID     string //所在机器标识
+	instanceIdShow bool   //是否输出机器标识
+	isColor        bool
+	isStdout       bool
+	sessionKey     string
+	logLevel       = TraceLevel
+	logDaysCount   = 10
+	logMode        = CommonMode
 )
 
 func SetLogLevel(l Level) {
@@ -100,10 +148,10 @@ func SetLogLevel(l Level) {
 
 func init() {
 	instanceID, _ = os.Hostname()
-	InitLogger(Config{TraceLevel, "", isColor, logDaysCount, ""})
+	_ = InitLogger(Config{TraceLevel, "", isColor, logDaysCount, "", CommonMode, instanceID, false, false})
 }
 
-func InitLogger(config Config) {
+func InitLogger(config Config) error {
 	if config.LogLevel == 0 {
 		config.LogLevel = TraceLevel
 	}
@@ -111,32 +159,49 @@ func InitLogger(config Config) {
 		config.DayCount = logDaysCount
 	}
 	if config.SessionKey != "" {
+		if config.SessionKey == CtxKeyLogWith {
+			return errors.New("session key(" + config.SessionKey + ") is not support, please input another one")
+		}
 		sessionKey = config.SessionKey
 	}
+	if config.Mode != "" {
+		logMode = config.Mode
+	}
+	if config.InstanceId != "" {
+		instanceID = config.InstanceId
+	}
 
+	instanceIdShow = config.InstanceIdShow
 	logLevel = config.LogLevel
 	logDaysCount = config.DayCount
+	isColor = config.SetColor
 
-	log.SetFlags(log.Ldate | log.Lmicroseconds)
+	switch logMode {
+	case CommonMode:
+		log.SetFlags(log.Ldate | log.Lmicroseconds)
+	case JsonMode:
+		log.SetFlags(0)
+	}
 	switch runtime.GOOS {
-	case "windows", "darwin":
-		// 默认在windows和macos下启用开发模式，输出所有日志等级
-		// 不进行日志文件写入，将日志输出到stdout，并开启彩色输出
-		isColor = true
-		return
-	case "linux":
-		isColor = config.SetColor
+	case "windows":
+		// 默认在windows下启用开发模式,不进行日志文件写入，将日志输出到stdout
+	case "linux", "darwin":
+		// 在linux下启用标准输出验证如果开启则标准输出也会输出日志内容
+		if config.Stdout {
+			isStdout = config.Stdout
+		}
+		if config.LogFile != "" {
+			path := config.LogFile + ".%Y%m%d"
+			writer, _ := rotate.New(
+				path,
+				rotate.WithLinkName(config.LogFile),
+				rotate.WithMaxAge(time.Duration(24*logDaysCount)*time.Hour),
+				rotate.WithRotationTime(time.Duration(24)*time.Hour),
+			)
+			log.SetOutput(writer)
+		}
 	}
-	if config.LogFile != "" {
-		path := config.LogFile + ".%Y%m%d"
-		writer, _ := rotate.New(
-			path,
-			rotate.WithLinkName(config.LogFile),
-			rotate.WithMaxAge(time.Duration(24*logDaysCount)*time.Hour),
-			rotate.WithRotationTime(time.Duration(24)*time.Hour),
-		)
-		log.SetOutput(writer)
-	}
+	return nil
 }
 
 func langFileStrToShortStr(fileStr string, maxLength int) (outStr string) {
@@ -166,21 +231,77 @@ func langFileStrToShortStr(fileStr string, maxLength int) (outStr string) {
 	return
 }
 
-func logCommon(levelStr, file string, args ...interface{}) {
-	showStr := ""
-	for _, arg := range args {
-		showStr += fmt.Sprintf("%v ", arg)
+func logCommon(level Level, file string, ctx context.Context, args ...interface{}) {
+	ctxStr := ""
+	ctxLogWithValue := ""
+	if ctx != nil {
+		sid := ctx.Value(sessionKey)
+		if sid != nil {
+			ctxStr = sid.(string)
+		}
+		logWithKey := ctx.Value(CtxKeyLogWith)
+		if logWithKey != nil {
+			ctxLogWithValue = logWithKey.(string)
+		}
 	}
-	if isColor { // 在彩色输出模式下将pkg包中调用的日志也以非彩色形式输出
-		log.Println(fmt.Sprintf("[%s] %s%-20s%s [%s]", instanceID, Cyan, langFileStrToShortStr(file, 20), Reset, levelStr), showStr)
-	} else {
-		log.Println(fmt.Sprintf("[%s] %-20s [%s]", instanceID, langFileStrToShortStr(file, 20), levelStr), showStr)
+	file = langFileStrToShortStr(file, 20)
+	argsStr := ""
+	switch ctxLogWithValue {
+	case CtxFields:
+		if len(args) > 0 {
+			argsStr = fmt.Sprintf("%v", args[0])
+		}
+	default:
+		for i, arg := range args {
+			if i == 0 {
+				argsStr += fmt.Sprintf("%v", arg)
+			} else {
+				argsStr += fmt.Sprintf(" %v", arg)
+			}
+		}
+	}
+	showStr := ""
+	switch logMode {
+	case JsonMode:
+		// TODO support json format
+		levelStr := strings.ToLower(level.String())
+		showStr = fmt.Sprintf(`{"level":"%s","file":"%s",%s%s"%s":%s}`, levelStr, file,
+			util.If(instanceIdShow, `"instance":"`+instanceID+`",`, ""),
+			util.If(ctxStr != "", `"`+sessionKey+`":"`+ctxStr+`",`, ""),
+			util.If(ctxLogWithValue == CtxFields, CtxFields, "msg"),
+			util.If(ctxLogWithValue == CtxFields, argsStr, `"`+argsStr+`"`))
+	default:
+		instanceIdDisplay := util.If(instanceIdShow, "["+instanceID+"] ", "") // 是否要显示机器标识
+		fileDisplay := util.If(isColor, fmt.Sprintf("%s%s%s", Cyan, file, Reset), file)
+		levelStr := level.String()
+		if isColor { // 在彩色输出模式下将pkg包中调用的日志也以非彩色形式输出
+			color := ""
+			switch level {
+			case SqlLevel:
+				color = Blue
+			case StartLevel:
+				color = Green
+			case DebugLevel:
+				color = Magenta
+			case WarnLevel:
+				color = Yellow
+			case ErrorLevel:
+				color = Red
+			}
+			levelStr = fmt.Sprintf("%s", util.If(isColor, fmt.Sprintf("%s%s%s", color, levelStr, Reset), levelStr))
+		}
+		showStr = fmt.Sprintf("%s%-20s [%s] %s%s", instanceIdDisplay, fileDisplay, levelStr,
+			util.If(ctxStr != "", sessionKey+"="+ctxStr+" ", ""), argsStr)
+	}
+	log.Println(showStr)
+	if isStdout {
+		fmt.Println(showStr)
 	}
 }
 
 func Starting(args ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
-	logCommon(fmt.Sprintf("%s", util.If(isColor, Green, ""))+"Start"+Reset, fmt.Sprintf("%s:%d", file, line), args...)
+	logCommon(StartLevel, fmt.Sprintf("%s:%d", file, line), nil, args...)
 }
 
 func Trace(args ...interface{}) {
@@ -188,7 +309,7 @@ func Trace(args ...interface{}) {
 		return
 	}
 	_, file, line, _ := runtime.Caller(1)
-	logCommon("Trace", fmt.Sprintf("%s:%d", file, line), args...)
+	logCommon(TraceLevel, fmt.Sprintf("%s:%d", file, line), nil, args...)
 }
 
 func Debug(args ...interface{}) {
@@ -196,50 +317,7 @@ func Debug(args ...interface{}) {
 		return
 	}
 	_, file, line, _ := runtime.Caller(1)
-	logCommon("Debug", fmt.Sprintf("%s:%d", file, line), args...)
-}
-
-func InfoForSQL(format string, args []interface{}) {
-	fileAndLine := fmt.Sprintf("%s", args[0])
-	format = strings.Replace(format, "%s\n", "", 1)
-	showStr := fmt.Sprintf(format, args[1:]...)
-	logCommon(fmt.Sprintf("%s", util.If(isColor, Blue, ""))+"SQL  "+Reset, fileAndLine, showStr)
-}
-
-func Info(args ...interface{}) {
-	if logLevel < InfoLevel {
-		return
-	}
-	_, file, line, _ := runtime.Caller(1)
-	logCommon(fmt.Sprintf("%s", util.If(isColor, Magenta, ""))+"Info "+Reset, fmt.Sprintf("%s:%d", file, line), args...)
-}
-
-func InfoWithCtx(ctx context.Context, args ...interface{}) {
-	if logLevel < InfoLevel {
-		return
-	}
-	_, file, line, _ := runtime.Caller(1)
-	sid := ctx.Value(sessionKey)
-	if sid != nil {
-		args = append(args, "sid:"+sid.(string))
-	}
-	logCommon(fmt.Sprintf("%s", util.If(isColor, Magenta, ""))+"Info "+Reset, fmt.Sprintf("%s:%d", file, line), args...)
-}
-
-func InfoPrintln(args ...interface{}) {
-	if logLevel < InfoLevel {
-		return
-	}
-	_, file, line, _ := runtime.Caller(1)
-	logCommon("Info ", fmt.Sprintf("%s:%d", file, line), args...)
-}
-
-func InfoPrintf(str string, args ...interface{}) {
-	if logLevel < InfoLevel {
-		return
-	}
-	_, file, line, _ := runtime.Caller(1)
-	logCommon("Info ", fmt.Sprintf("%s:%d", file, line), fmt.Sprintf(str, args...))
+	logCommon(DebugLevel, fmt.Sprintf("%s:%d", file, line), nil, args...)
 }
 
 func Printf(str string, args ...interface{}) {
@@ -248,34 +326,6 @@ func Printf(str string, args ...interface{}) {
 
 func Println(args ...interface{}) {
 	log.Println(args...)
-}
-
-func Warn(args ...interface{}) {
-	if logLevel < WarnLevel {
-		return
-	}
-	_, file, line, _ := runtime.Caller(1)
-	logCommon(fmt.Sprintf("%s", util.If(isColor, Yellow, ""))+"Warn "+Reset, fmt.Sprintf("%s:%d", file, line), args...)
-}
-
-func Error(args ...interface{}) {
-	if logLevel < ErrorLevel {
-		return
-	}
-	_, file, line, _ := runtime.Caller(1)
-	logCommon(fmt.Sprintf("%s", util.If(isColor, Red, ""))+"Error"+Reset, fmt.Sprintf("%s:%d", file, line), args...)
-}
-
-func ErrorWithCtx(ctx context.Context, args ...interface{}) {
-	if logLevel < ErrorLevel {
-		return
-	}
-	_, file, line, _ := runtime.Caller(1)
-	sid := ctx.Value(sessionKey)
-	if sid != nil {
-		args = append(args, "sid:"+sid.(string))
-	}
-	logCommon(fmt.Sprintf("%s", util.If(isColor, Red, ""))+"Error"+Reset, fmt.Sprintf("%s:%d", file, line), args...)
 }
 
 func Fatal(args ...interface{}) {
@@ -292,24 +342,18 @@ func Panic(args ...interface{}) {
 	log.Panic(args...)
 }
 
-func InfoByteListHex(byteList []byte) {
-	str := "["
-	for i, b := range byteList {
-		str += fmt.Sprintf(" 0x%02X", b)
-		if i == len(byteList)-1 {
-			str += " "
-		}
-	}
-	str += "]"
-	Info(str)
+func SQL(format string, args []interface{}) {
+	fileAndLine := fmt.Sprintf("%s", args[0])
+	format = strings.Replace(format, "%s\n", "", 1)
+	showStr := fmt.Sprintf(format, args[1:]...)
+	logCommon(SqlLevel, fileAndLine, nil, showStr)
 }
 
-func WithFields(msg string, fields Fields, level Level) {
+func WithFields(ctx context.Context, fields Fields, level Level) {
 	if logLevel < level {
 		return
 	}
 	_, file, line, _ := runtime.Caller(1)
-	file = strings.Replace(file, logMainPrefix, "", 1)
 
 	var fieldsJson string
 	if fields != nil {
@@ -320,22 +364,8 @@ func WithFields(msg string, fields Fields, level Level) {
 			fieldsJson = string(fieldsJsonByte)
 		}
 	}
-	levelStr := ""
-	switch level {
-	case TraceLevel:
-		levelStr = "Trace"
-	case DebugLevel:
-		levelStr = "Debug"
-	case InfoLevel:
-		levelStr = fmt.Sprintf("%s", util.If(isColor, Magenta, "")) + "Info " + Reset
-	case WarnLevel:
-		levelStr = fmt.Sprintf("%s", util.If(isColor, Yellow, "")) + "Warn " + Reset
-	case ErrorLevel:
-		levelStr = fmt.Sprintf("%s", util.If(isColor, Red, "")) + "Error" + Reset
-	case FatalLevel:
-		levelStr = "Fatal"
-	case PanicLevel:
-		levelStr = "Panic"
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	logCommon(levelStr, fmt.Sprintf("%s:%d", file, line), msg, fieldsJson)
+	logCommon(level, fmt.Sprintf("%s:%d", file, line), context.WithValue(ctx, CtxKeyLogWith, CtxFields), fieldsJson)
 }
