@@ -264,7 +264,8 @@ func logCommon(level Level, file string, ctx context.Context, args ...interface{
 	switch logMode {
 	case JsonMode:
 		levelStr := strings.ToLower(level.String())
-		showStr = fmt.Sprintf(`{"level":"%s","file":"%s",%s%s"%s":%s}`, levelStr, file,
+		showStr = fmt.Sprintf(`{"time":"%s",level":"%s","file":"%s",%s%s"%s":%s}`,
+			time.Now().Format("2006/01/02 15:04:05.000000"), levelStr, file,
 			util.If(instanceIdShow, `"instance":"`+instanceID+`",`, ""),
 			util.If(ctxStr != "", `"`+sessionKey+`":"`+ctxStr+`",`, ""),
 			util.If(ctxLogWithValue == CtxFields, CtxFields, "msg"),
