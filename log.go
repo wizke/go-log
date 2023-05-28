@@ -367,15 +367,3 @@ func WithFields(ctx context.Context, fields Fields, level Level) {
 	}
 	logCommon(level, fmt.Sprintf("%s:%d", file, line), context.WithValue(ctx, CtxKeyLogWith, CtxFields), fieldsJson)
 }
-
-func ByteListHex(byteList []byte) {
-	str := "["
-	for i, b := range byteList {
-		str += fmt.Sprintf(" 0x%02X", b)
-		if i == len(byteList)-1 {
-			str += " "
-		}
-	}
-	str += "]"
-	fmt.Printf(str)
-}
