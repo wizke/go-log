@@ -69,6 +69,7 @@ const (
 
 const (
 	SqlLevel   Level = iota // Sql仅用于接管Sql日志输出
+	GinLevel                // Start仅用于标记服务启动时的位置点与结束点
 	StartLevel              // Start仅用于标记服务启动时的位置点与结束点
 	PanicLevel
 	FatalLevel
@@ -81,7 +82,7 @@ const (
 
 // String
 func (l Level) String() string {
-	return [...]string{"SQL  ", "Start", "Panic", "Fatal", "Error", "Warn ", "Info ", "Debug", "Trace"}[l]
+	return [...]string{"SQL  ", "GIN  ", "Start", "Panic", "Fatal", "Error", "Warn ", "Info ", "Debug", "Trace"}[l]
 }
 
 func (l Level) StringLowerOnly() string {
@@ -277,7 +278,7 @@ func logCommon(level Level, file string, ctx context.Context, args ...interface{
 		if isColor { // 在彩色输出模式下将pkg包中调用的日志也以非彩色形式输出
 			color := ""
 			switch level {
-			case SqlLevel:
+			case SqlLevel, GinLevel:
 				color = Blue
 			case StartLevel:
 				color = Green
@@ -312,14 +313,6 @@ func Trace(args ...interface{}) {
 	logCommon(TraceLevel, fmt.Sprintf("%s:%d", file, line), nil, args...)
 }
 
-func Debug(args ...interface{}) {
-	if logLevel < DebugLevel {
-		return
-	}
-	_, file, line, _ := runtime.Caller(1)
-	logCommon(DebugLevel, fmt.Sprintf("%s:%d", file, line), nil, args...)
-}
-
 func Printf(str string, args ...interface{}) {
 	log.Printf(str, args...)
 }
@@ -349,6 +342,11 @@ func SQL(format string, args []interface{}) {
 	logCommon(SqlLevel, fileAndLine, nil, showStr)
 }
 
+func GIN(args ...interface{}) {
+	_, file, line, _ := runtime.Caller(1)
+	logCommon(GinLevel, fmt.Sprintf("%s:%d", file, line), nil, args...)
+}
+
 func WithFields(ctx context.Context, fields Fields, level Level) {
 	if logLevel < level {
 		return
@@ -368,4 +366,16 @@ func WithFields(ctx context.Context, fields Fields, level Level) {
 		ctx = context.Background()
 	}
 	logCommon(level, fmt.Sprintf("%s:%d", file, line), context.WithValue(ctx, CtxKeyLogWith, CtxFields), fieldsJson)
+}
+
+func ByteListHex(byteList []byte) {
+	str := "["
+	for i, b := range byteList {
+		str += fmt.Sprintf(" 0x%02X", b)
+		if i == len(byteList)-1 {
+			str += " "
+		}
+	}
+	str += "]"
+	fmt.Printf(str)
 }

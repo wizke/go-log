@@ -1,15 +1,22 @@
 package log
 
-import "fmt"
+import (
+	"fmt"
+	"runtime"
+)
 
-func DebugByteListHex(byteList []byte) {
-	str := "["
-	for i, b := range byteList {
-		str += fmt.Sprintf(" 0x%02X", b)
-		if i == len(byteList)-1 {
-			str += " "
-		}
+func Debug(args ...interface{}) {
+	if logLevel < DebugLevel {
+		return
 	}
-	str += "]"
-	Debug(str)
+	_, file, line, _ := runtime.Caller(1)
+	logCommon(DebugLevel, fmt.Sprintf("%s:%d", file, line), nil, args...)
+}
+
+func DebugPrintf(str string, args ...interface{}) {
+	if logLevel < DebugLevel {
+		return
+	}
+	_, file, line, _ := runtime.Caller(1)
+	logCommon(DebugLevel, fmt.Sprintf("%s:%d", file, line), nil, fmt.Sprintf(str, args...))
 }
