@@ -9,5 +9,5 @@ require (
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/wizke/go-util v0.0.2 // indirect
+	github.com/wizke/go-util v0.0.11 // indirect
 )
