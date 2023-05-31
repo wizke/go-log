@@ -8,5 +8,5 @@ require (
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/wizke/go-util v0.0.11
+	github.com/wizke/go-util v0.0.12
 )
