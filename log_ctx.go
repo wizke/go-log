@@ -6,6 +6,14 @@ import (
 	"runtime"
 )
 
+func DebugWithCtx(ctx context.Context, args ...interface{}) {
+	if logLevel < DebugLevel {
+		return
+	}
+	_, file, line, _ := runtime.Caller(1)
+	logCommon(DebugLevel, fmt.Sprintf("%s:%d", file, line), ctx, args...)
+}
+
 func InfoWithCtx(ctx context.Context, args ...interface{}) {
 	if logLevel < InfoLevel {
 		return
