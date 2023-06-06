@@ -296,7 +296,7 @@ func logCommon(level Level, file string, ctx context.Context, args ...interface{
 	}
 	log.Println(showStr)
 	if isStdout {
-		fmt.Println(showStr)
+		fmt.Printf("%s %s\n", time.Now().Format("2006/01/02 15:04:05.000000"), showStr)
 	}
 }
 
