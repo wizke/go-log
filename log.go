@@ -148,6 +148,7 @@ func SetLogLevel(l Level) {
 }
 
 func init() {
+	log.SetFlags(0)
 	instanceID, _ = os.Hostname()
 	_ = InitLogger(Config{TraceLevel, "", isColor, logDaysCount, "", CommonMode, instanceID, false, false})
 }
@@ -177,12 +178,6 @@ func InitLogger(config Config) error {
 	logDaysCount = config.DayCount
 	isColor = config.SetColor
 
-	switch logMode {
-	case CommonMode:
-		log.SetFlags(log.Ldate | log.Lmicroseconds)
-	case JsonMode:
-		log.SetFlags(0)
-	}
 	switch runtime.GOOS {
 	case "windows":
 		// 默认在windows下启用开发模式,不进行日志文件写入，将日志输出到stdout
@@ -294,9 +289,10 @@ func logCommon(level Level, file string, ctx context.Context, args ...interface{
 		showStr = fmt.Sprintf("%s%-20s [%s] %s%s", instanceIdDisplay, fileDisplay, levelStr,
 			util.If(ctxStr != "", sessionKey+"="+ctxStr+" ", ""), argsStr)
 	}
+	showStr = fmt.Sprintf("%s %s", time.Now().Format("2006/01/02 15:04:05.000000"), showStr)
 	log.Println(showStr)
 	if isStdout {
-		fmt.Printf("%s %s\n", time.Now().Format("2006/01/02 15:04:05.000000"), showStr)
+		fmt.Println(showStr)
 	}
 }
 
@@ -311,6 +307,10 @@ func Trace(args ...interface{}) {
 	}
 	_, file, line, _ := runtime.Caller(1)
 	logCommon(TraceLevel, fmt.Sprintf("%s:%d", file, line), nil, args...)
+}
+
+func Print(args ...interface{}) {
+	log.Print(args...)
 }
 
 func Printf(str string, args ...interface{}) {
