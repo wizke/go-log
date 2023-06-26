@@ -311,19 +311,32 @@ func Trace(args ...interface{}) {
 
 func Print(args ...interface{}) {
 	log.Print(args...)
+	if isStdout {
+		fmt.Print(args...)
+	}
 }
 
 func Printf(str string, args ...interface{}) {
 	log.Printf(str, args...)
+	if isStdout {
+		fmt.Printf(str, args...)
+	}
 }
 
 func Println(args ...interface{}) {
 	log.Println(args...)
+	if isStdout {
+		fmt.Println(args...)
+	}
 }
 
 func Fatal(args ...interface{}) {
 	if logLevel < FatalLevel {
 		return
+	}
+	if isStdout {
+		fmt.Print("Fatal")
+		fmt.Println(args...)
 	}
 	log.Fatal(args...)
 }
@@ -331,6 +344,10 @@ func Fatal(args ...interface{}) {
 func Panic(args ...interface{}) {
 	if logLevel < PanicLevel {
 		return
+	}
+	if isStdout {
+		fmt.Print("Panic")
+		fmt.Println(args...)
 	}
 	log.Panic(args...)
 }
