@@ -287,7 +287,7 @@ func logCommon(level Level, file string, ctx context.Context, args ...interface{
 			levelStr = fmt.Sprintf("%s", util.If(isColor, fmt.Sprintf("%s%s%s", color, levelStr, Reset), levelStr))
 		}
 		showStr = fmt.Sprintf("%s%-20s [%s] %s%s", instanceIdDisplay, fileDisplay, levelStr,
-			util.If(ctxStr != "", sessionKey+"="+ctxStr+" ", ""), argsStr)
+			util.If(ctxStr != "", "["+ctxStr+"] ", ""), argsStr)
 	}
 	showStr = fmt.Sprintf("%s %s", time.Now().Format("2006/01/02 15:04:05.000000"), showStr)
 	log.Println(showStr)
