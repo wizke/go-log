@@ -2,11 +2,4 @@ module github.com/wizke/go-log
 
 go 1.16
 
-require github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
-
-require (
-	github.com/jonboulle/clockwork v0.3.0 // indirect
-	github.com/lestrrat-go/strftime v1.0.6 // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
-	github.com/wizke/go-util v0.0.12
-)
+require github.com/wizke/go-util v0.0.12

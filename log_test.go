@@ -143,3 +143,29 @@ func TestSessionKey(t *testing.T) {
 	commonLog()
 	fmt.Println("3<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 }
+func TestSetLogHandler(t *testing.T) {
+	fmt.Println("1>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	_ = InitLogger(Config{
+		SetColor:   true,
+		SessionKey: "session_id",
+	})
+	SetLogHandler(func(s string) string {
+		return ">>> " + s + " <<<"
+	})
+	commonLog()
+	fmt.Println("1<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println("2>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	_ = InitLogger(Config{
+		SetColor:   true,
+		SessionKey: "s_id",
+	})
+	commonLog()
+	fmt.Println("2<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println("3>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	_ = InitLogger(Config{
+		SetColor:   true,
+		SessionKey: "session_id",
+	})
+	commonLog()
+	fmt.Println("3<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+}

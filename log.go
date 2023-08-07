@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	rotate "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/wizke/go-util"
+	"io"
 	"log"
 	"os"
 	"runtime"
@@ -147,6 +147,10 @@ func SetLogLevel(l Level) {
 	logLevel = l
 }
 
+func SetIoWriter(iw io.Writer) {
+	log.SetOutput(iw)
+}
+
 func init() {
 	log.SetFlags(0)
 	instanceID, _ = os.Hostname()
@@ -178,24 +182,8 @@ func InitLogger(config Config) error {
 	logDaysCount = config.DayCount
 	isColor = config.SetColor
 
-	switch runtime.GOOS {
-	case "windows":
-		// 默认在windows下启用开发模式,不进行日志文件写入，将日志输出到stdout
-	case "linux", "darwin":
-		// 在linux下启用标准输出验证如果开启则标准输出也会输出日志内容
-		if config.Stdout {
-			isStdout = config.Stdout
-		}
-		if config.LogFile != "" {
-			path := config.LogFile + ".%Y%m%d"
-			writer, _ := rotate.New(
-				path,
-				rotate.WithLinkName(config.LogFile),
-				rotate.WithMaxAge(time.Duration(24*logDaysCount)*time.Hour),
-				rotate.WithRotationTime(time.Duration(24)*time.Hour),
-			)
-			log.SetOutput(writer)
-		}
+	if config.Stdout {
+		isStdout = config.Stdout
 	}
 	return nil
 }
@@ -225,6 +213,12 @@ func langFileStrToShortStr(fileStr string, maxLength int) (outStr string) {
 		outStr = outStr[outStrLen-maxLength:]
 	}
 	return
+}
+
+var logHandler func(s string) string
+
+func SetLogHandler(f func(s string) string) {
+	logHandler = f
 }
 
 func logCommon(level Level, file string, ctx context.Context, args ...interface{}) {
@@ -290,6 +284,10 @@ func logCommon(level Level, file string, ctx context.Context, args ...interface{
 			util.If(ctxStr != "", "["+ctxStr+"] ", ""), argsStr)
 	}
 	showStr = fmt.Sprintf("%s %s", time.Now().Format("2006/01/02 15:04:05.000000"), showStr)
+
+	if logHandler != nil {
+		showStr = logHandler(showStr)
+	}
 	log.Println(showStr)
 	if isStdout {
 		fmt.Println(showStr)
@@ -310,6 +308,13 @@ func Trace(args ...interface{}) {
 }
 
 func Print(args ...interface{}) {
+	if logHandler != nil {
+		if len(args) > 0 {
+			showStr := fmt.Sprintf("%v", args)
+			args[0] = logHandler(showStr)
+			args = args[:1]
+		}
+	}
 	log.Print(args...)
 	if isStdout {
 		fmt.Print(args...)
@@ -317,6 +322,13 @@ func Print(args ...interface{}) {
 }
 
 func Printf(str string, args ...interface{}) {
+	if logHandler != nil {
+		if len(args) > 0 {
+			showStr := fmt.Sprintf(str, args...)
+			str = logHandler(showStr)
+			args = nil
+		}
+	}
 	log.Printf(str, args...)
 	if isStdout {
 		fmt.Printf(str, args...)
@@ -324,6 +336,13 @@ func Printf(str string, args ...interface{}) {
 }
 
 func Println(args ...interface{}) {
+	if logHandler != nil {
+		if len(args) > 0 {
+			showStr := fmt.Sprintf("%v", args)
+			args[0] = logHandler(showStr)
+			args = args[:1]
+		}
+	}
 	log.Println(args...)
 	if isStdout {
 		fmt.Println(args...)
@@ -331,22 +350,44 @@ func Println(args ...interface{}) {
 }
 
 func Fatal(args ...interface{}) {
+	if logHandler != nil {
+		if len(args) > 0 {
+			showStr := fmt.Sprintf("%v", args)
+			args[0] = logHandler(showStr)
+			args = args[:1]
+		}
+	}
 	if logLevel < FatalLevel {
 		return
 	}
 	if isStdout {
-		fmt.Print("Fatal")
+		if logHandler != nil {
+			fmt.Print(logHandler("Fatal"))
+		} else {
+			fmt.Print("Fatal")
+		}
 		fmt.Println(args...)
 	}
 	log.Fatal(args...)
 }
 
 func Panic(args ...interface{}) {
+	if logHandler != nil {
+		if len(args) > 0 {
+			showStr := fmt.Sprintf("%v", args)
+			args[0] = logHandler(showStr)
+			args = args[:1]
+		}
+	}
 	if logLevel < PanicLevel {
 		return
 	}
 	if isStdout {
-		fmt.Print("Panic")
+		if logHandler != nil {
+			fmt.Print(logHandler("Panic"))
+		} else {
+			fmt.Print("Panic")
+		}
 		fmt.Println(args...)
 	}
 	log.Panic(args...)
