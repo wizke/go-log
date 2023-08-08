@@ -26,6 +26,10 @@ func commonLog() {
 	WithFields(ctx1, Fields{"1": "a", "2": "b"}, InfoLevel)
 }
 
+func TestLangFileStrToShortStr(t *testing.T) {
+	fmt.Println(fmt.Sprintf("=====%q", langFileStrToShortStr("asdfasf", 20)))
+}
+
 func TestLogInit(t *testing.T) {
 	fmt.Println("1>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	_ = InitLogger(Config{
