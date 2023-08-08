@@ -212,7 +212,7 @@ func langFileStrToShortStr(fileStr string, maxLength int) (outStr string) {
 	if outStrLen > maxLength {
 		outStr = outStr[outStrLen-maxLength:]
 	}
-	return
+	return fmt.Sprintf("%*s", maxLength, outStr)
 }
 
 var logHandler func(s string) string
