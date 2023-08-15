@@ -23,6 +23,11 @@
   > go build -gcflags="all=-trimpath=%cd%" -asmflags="all=-trimpath=%cd%" ^
   >   -o main.exe main.go
   > ```
-  >
-  > 
 
+- `v1.0.0+`
+
+  > add json format
+
+- `v1.1.0+`
+
+  > add log handler
